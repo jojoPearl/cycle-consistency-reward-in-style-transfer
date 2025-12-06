@@ -1,0 +1,9 @@
+[
+    {
+        "content_path": "./output_candidates/beach/00_original.png",
+        "win_path": "./output_candidates/beach/01_best_anchor.png",
+        "lose_path": "./output_candidates/beach/02_content_collapse.png",
+        "win_score": 0.23429536819458008,
+        "lose_score": 0.2914871573448181
+    }
+]

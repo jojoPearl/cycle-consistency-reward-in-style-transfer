@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adain Cycle Reward — Web UI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* Basic styling for flash messages */
+    .flash-messages {
+      list-style: none;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      background-color: #e6e6e6;
+      color: #333;
+    }
+    /* Add basic gallery styling for better presentation */
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .thumb {
+      max-width: 150px;
+      text-align: center;
+      border: 1px solid #ddd;
+      padding: 5px;
+      height: fit-content; 
+    }
+    .thumb img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* Removed .fname styles */
+
+    /* --- New Status Bar Styles --- */
+    #status-bar {
+      margin-top: 10px;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 4px;
+      display: none; /* Hidden by default */
+    }
+    .status-running {
+      background-color: #ffe082; /* Yellow/Orange */
+      color: #333;
+    }
+    .status-error {
+      background-color: #ef9a9a; /* Red/Pink */
+      color: #b71c1c;
+    }
+    .status-complete {
+      background-color: #a5d6a7; /* Green */
+      color: #1b5e20;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Upload Images and Generate Stylized Results</h1>
+
+    {# === FLASH MESSAGES DISPLAY BLOCK (Crucial for feedback) === #}
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {# ========================================================= #}
+
+    <section>
+      <h2>1) Upload Content Images</h2>
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="content_files" multiple accept="image/*">
+        <button type="submit">Upload</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>2) Select Style Image and Run</h2>
+      <form id="run-form" action="/run" method="post">
+        <label for="style_file">Style:</label>
+        <select name="style_file" id="style_file">
+          {# Added "All Styles" option with the special value '__all__' #}
+          <option value="__all__">-- All Styles --</option>
+          {# Iterate over styles passed from Flask (app.py ensures '__all__' is handled) #}
+          {% for s in styles %}
+            {# Skip the special '__all__' value if it was added to the list in Flask for simplicity #}
+            {% if s != '__all__' %}
+              <option value="{{ s }}">{{ s }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+
+        <div>
+          <label>Alphas:</label>
+          <input name="alphas" value="0.3">
+          <input name="alphas" value="0.5">
+          <input name="alphas" value="0.7">
+          <input name="alphas" value="0.9">
+          <input name="alphas" value="1.0">
+        </div>
+
+        <div>
+          <label for="max_samples">Max samples:</label>
+          <input type="number" id="max_samples" name="max_samples" value="2000">
+        </div>
+
+        <button type="submit" id="run-button">Run Generation</button>
+      </form>
+
+      {# --- New Status Bar HTML --- #}
+      <div id="status-bar" style="display: none;"></div>
+      {# --------------------------- #}
+
+    </section>
+
+    <section>
+        <h2>3) Generated Results Preview</h2>
+        
+        {# This is the container for all stylized image thumbnails #}
+        <div class="gallery">
+            {% for img in stylized %}
+            <div class="thumb">
+            {# Link to the full-size image, opening in a new tab #}
+            <a href="/stylized/{{ img }}" target="_blank">
+                {# Display the thumbnail image using the /stylized route #}
+                <img src="/stylized/{{ img }}" alt="Stylized image">
+            </a>
+            {# Filename display removed as requested #}
+            </div>
+            {% endfor %}
+
+            {# Handle the case when no stylized images have been generated yet #}
+            {% if not stylized %}
+            <p>No stylized images available yet. Run the generation script after uploading content images.</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3>Cycle Scores JSON</h3>
+            <a href="/data/cycle_scores.json" target="_blank">View JSON Output</a>
+        </div>
+    </section>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('run-form');
+        const button = document.getElementById('run-button');
+        const statusBar = document.getElementById('status-bar');
+        
+        let pollingInterval = null;
+
+        // --- Function to update status bar ---
+        function updateStatus(status, message) {
+            statusBar.style.display = 'block';
+            statusBar.className = '';
+            
+            if (status === 'running') {
+                statusBar.classList.add('status-running');
+                statusBar.innerHTML = '🔴 <b>Running...</b> Please wait.';
+            } else if (status === 'error') {
+                statusBar.classList.add('status-error');
+                statusBar.innerHTML = '❌ <b>Error!</b> Check server logs for details.';
+            } else if (status === 'complete') {
+                statusBar.classList.add('status-complete');
+                statusBar.innerHTML = '✅ <b>Generation Complete!</b> Refreshing page...';
+            } else {
+                statusBar.style.display = 'none';
+            }
+        }
+        
+        // --- Handle form submission ---
+        form.addEventListener('submit', function(event) {
+            // Prevent the default redirect to handle status check
+            event.preventDefault(); 
+            
+            updateStatus('running', 'Starting generation...');
+            button.disabled = true;
+
+            // Submit the form data asynchronously
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            // Since the Flask /run route redirects (HTTP 302), fetch will still successfully execute.
+            .then(() => {
+                // Flask successfully received the request, now check for completion
+                // Start polling every 3 seconds
+                pollingInterval = setInterval(pollStatus, 3000); 
+            })
+            .catch(error => {
+                console.error('Submission error:', error);
+                updateStatus('error', 'Failed to submit request.');
+                button.disabled = false;
+            });
+        });
+
+        // --- Polling function to check generation status ---
+        function pollStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    // This logic assumes a successful run creates the cycle_scores.json file
+                    if (data.output_json) { 
+                        // The script has likely finished and succeeded
+                        clearInterval(pollingInterval);
+                        updateStatus('complete', 'Generation complete!');
+                        // Wait a moment and then refresh the page to show new images/messages
+                        setTimeout(() => {
+                            window.location.reload(); 
+                        }, 1000);
+                    } else {
+                        // The script is either still running or has failed without creating the JSON
+                        // For this basic setup, we assume running if JSON is missing after submit.
+                        updateStatus('running', 'Still processing...');
+                    }
+                })
+                .catch(error => {
+                    // Server unavailable or /status failed.
+                    console.error('Status check failed:', error);
+                    clearInterval(pollingInterval);
+                    updateStatus('error', 'Status check failed: Server issue.');
+                    button.disabled = false;
+                });
+        }
+    });
+  </script>
+</body>
+</html>
