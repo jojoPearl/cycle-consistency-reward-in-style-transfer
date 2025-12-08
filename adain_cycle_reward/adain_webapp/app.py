@@ -22,7 +22,6 @@ def ensure_directories_exist():
     os.makedirs(STYLIZED_DIR, exist_ok=True)
     print(f"Ensured directories exist: {DATA_DIR}")
 
-# 用于启动时清理目录的函数
 def cleanup_directory(directory_path):
     files_to_delete = glob.glob(os.path.join(directory_path, '*'))
     count = 0
@@ -40,7 +39,6 @@ app = Flask(__name__)
 app.secret_key = 'replace-this-with-a-secure-key'
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
-# --- 辅助函数 ---
 def allowed_filename(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
 
