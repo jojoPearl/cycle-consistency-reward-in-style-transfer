@@ -8,12 +8,12 @@ Our primary goal is to validate that Cycle Reward can effectively replace manual
 
 ## ✨ Key Features & Application Modes
 
-We demonstrate the framework's effectiveness across two architectural paradigms: the classic **AdaIN** model (arbitrary style) and a novel **SMS-Distilled Feed-Forward Network** (specialized style).
+We demonstrate the framework's effectiveness across two architectural paradigms: the classic **AdaIN** model (arbitrary style) and a novel **SMS** (specialized style).
 
 ### 1. Training Stabilization (Loss Mode)
 The Cycle Reward Model acts as a content preservation loss component, actively guiding the generator's weight updates.
 * **Purpose:** To stabilize volatile training objectives (like SDS) and automate the content/style trade-off.
-* **Application:** Applied to the **SMS-Distilled ResNet Generator** (our proposed method). The Reward Model ($R$) is frozen and provides $\mathcal{L}_{\text{reward}}$ to the generator.
+* **Application:** Applied to the **SMS**. The Reward Model ($R$) is frozen and provides $\mathcal{L}_{\text{reward}}$ to the generator.
 
 ### 2. Inference-Time Selection (BoN Mode)
 The Cycle Reward Model acts as a quality selector for **Best-of-N (BoN)** inference, providing real-time quality assurance for final outputs.
@@ -26,24 +26,7 @@ The Cycle Reward Model acts as a quality selector for **Best-of-N (BoN)** infere
 
 | Paradigm | Style Mechanism | Cycle Reward Role | Purpose |
 | :--- | :--- | :--- | :--- |
-| **AdaIN (Baseline)** | Feature Statistics Alignment | Automates loss coefficient tuning ($\lambda_{style}$). | General Style Transfer |
-| **SMS Distilled FFN (Ours)** | Score Distillation Sampling (SDS) | Stabilizes SDS gradients and enforces content structure. | High-speed inference |
+| **AdaIN** | Feature Statistics Alignment | Automates loss coefficient tuning ($\lambda_{style}$). | General Style Transfer |
+| **SMS** | Score Distillation Sampling (SDS) | Stabilizes SDS gradients and enforces content structure. | High-speed inference |
 
 ---
-
-## 💻 Execution Modes
-
-### Mode A: Training Stabilization (FFN Distillation)
-
-This process trains the lightweight ResNet Generator ($G_{\theta}$) using SDS and the CycleReward loss. The specific parameters below (low LR, high $\lambda_{\text{cycle}}$) are crucial for stability against NaN explosions.
-
-```bash
-# Example command using the robust training script
-python train_feedforward_real_sms.py \
-  --content_dir "./data/content/val2017" \
-  --reward_model_path "./reward_model_checkpoint/epoch_1.pth" \
-  --lora_path "./lora_ckpt/fechin.safetensors" \
-  --output_dir "./output/distilled_generator" \
-  --lr 1e-5 \
-  --epochs 20 \
-  --lambda_cycle 5.0
