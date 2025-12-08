@@ -50,15 +50,6 @@ wget [http://images.cocodataset.org/zips/val2017.zip](http://images.cocodataset.
 unzip val2017.zip -d data/content/
 ```
 
-#### CycleReward Model (Required)
-
-Place your trained CycleReward Model checkpoint here. This is the "Judge" that will guide the training.
-
-```bash
-mkdir reward_model_checkpoint
-# cp /path/to/your/reward_model.pth ./reward_model_checkpoint/epoch_1.pth
-```
-
 #### Style LoRAs
 
 Download your desired style LoRA (e.g., Fechin Oil Painting) for the backend style teacher.
@@ -68,15 +59,47 @@ mkdir lora_ckpt
 wget "[https://civitai.com/api/download/models/90795?type=Model&format=SafeTensor](https://civitai.com/api/download/models/90795?type=Model&format=SafeTensor)" -O ./lora_ckpt/fechin.safetensors
 ```
 
+## Optimized Style Transfer Parameter
+--style_prompt "oil painting, thick brushstrokes, chiaroscuro lighting, textured canvas"
+--sd_path "Lykon/dreamshaper-8"
+--lora_path "lora_ckpt/fechin.safetensors"
+
+--style_prompt "impressionism style, broken brushstrokes, vibrant color patches, diffused light"
+--sd_path "Lykon/dreamshaper-8"
+--lora_path "lora_ckpt/monet_impression.safetensors"
+
+--style_prompt "Japanese Ukiyo-e woodblock print, bold black outlines, flat colors, textured paper, subtle geometric pattern"
+--sd_path "runwayml/stable-diffusion-v1-5"
+--lora_path "lora_ckpt/ukiyo-e.safetensors"
+
+--style_prompt "cyberpunk cityscape, neon reflections, volumetric light, synthetic materials, deep shadows"
+--sd_path "SG161222/RealVisXL_V3.0"
+--lora_path "lora_ckpt/neon-noir.safetensors"
+
 -----
+## 🎨 Training
+edit parameter omit>>>
+```bash
+python generate_condidates.py
+python generate_tripes.py
+python train_reward_model.py
+```
 
 ## 🎨 Training with CycleReward
 
+#### CycleReward Model (Required)
+
+Place your trained CycleReward Model checkpoint generated here. This is the "Judge" that will guide the training.
+
+```bash
+mkdir reward_model_checkpoint
+# cp /path/to/your/reward_model.pth ./reward_model_checkpoint/epoch_1.pth
+```
 We use a robust training script that combines the **CycleReward** signal with **SDS (Style)** loss.
 
 ### Robust Training Command
 
-The script `train_feedforward_final_fix.py` optimizes the generator. Note that `--lambda_cycle` controls the strength of the CycleReward influence.
+The script `train_feedforward.py` optimizes the generator. Note that `--lambda_cycle` controls the strength of the CycleReward influence.
 
 ```bash
 python train_feedforward.py \
