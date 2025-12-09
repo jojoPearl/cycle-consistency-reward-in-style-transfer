@@ -2,7 +2,7 @@ import torch
 import os
 import sys
 
-# 你的权重路径
+
 WEIGHT_PATH = "/home/bjia-25/workspace/papers/gen/SMS/cycle/feedforward_results/feedforward_final.pth"
 
 def check_weights():
@@ -12,10 +12,10 @@ def check_weights():
 
     print(f"正在检查: {WEIGHT_PATH}")
     try:
-        # 加载到 CPU
+        
         state_dict = torch.load(WEIGHT_PATH, map_location="cpu")
         
-        # 处理可能的嵌套
+        
         if 'state_dict' in state_dict: state_dict = state_dict['state_dict']
         elif 'model' in state_dict: state_dict = state_dict['model']
         
@@ -24,12 +24,12 @@ def check_weights():
         min_val = 0.0
         
         for key, val in state_dict.items():
-            # 检查 NaN
+            
             if torch.isnan(val).any():
                 print(f"⚠️ 发现 NaN (无效数值) 在层: {key}")
                 has_nan = True
             
-            # 检查数值是否过大
+            
             current_max = val.max().item()
             current_min = val.min().item()
             if abs(current_max) > max_val: max_val = abs(current_max)

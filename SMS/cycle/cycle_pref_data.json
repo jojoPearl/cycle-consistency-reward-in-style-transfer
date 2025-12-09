@@ -1,0 +1,9 @@
+[
+    {
+        "content_path": "./output_candidates/bridge/00_original.png",
+        "win_path": "./output_candidates/bridge/01_best_anchor.png",
+        "lose_path": "./output_candidates/bridge/02_content_collapse.png",
+        "win_score": 0.24038410186767578,
+        "lose_score": 0.42566514015197754
+    }
+]

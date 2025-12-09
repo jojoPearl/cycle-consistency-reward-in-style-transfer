@@ -3,28 +3,28 @@ import os
 import sys
 import numpy as np
 
-# 你的权重文件路径
+
 WEIGHT_PATH = "/home/bjia-25/workspace/papers/gen/SMS/feedforward_results/feedforward_final.pth"
 
 def check_tensor_health(name, tensor):
-    """诊断单个张量的健康状况"""
-    tensor = tensor.float() # 转为float32计算统计量
     
-    # 1. 检查 NaN (Not a Number)
+    tensor = tensor.float() 
+    
+    
     if torch.isnan(tensor).any():
         return "❌ 包含 NaN (损坏)"
     
-    # 2. 检查 Inf (无穷大)
+    
     if torch.isinf(tensor).any():
         return "❌ 包含 Inf (数值溢出)"
     
-    # 3. 检查数值范围
+    
     min_val = tensor.min().item()
     max_val = tensor.max().item()
     mean_val = tensor.mean().item()
     std_val = tensor.std().item()
     
-    # 阈值判断
+    
     if abs(max_val) > 100 or abs(min_val) > 100:
         return f"⚠️ 数值过大 (Min:{min_val:.1f}, Max:{max_val:.1f})"
     
@@ -43,7 +43,7 @@ def main():
     try:
         checkpoint = torch.load(WEIGHT_PATH, map_location="cpu")
         
-        # 提取 state_dict
+        
         if isinstance(checkpoint, dict):
             if 'state_dict' in checkpoint: state_dict = checkpoint['state_dict']
             elif 'model' in checkpoint: state_dict = checkpoint['model']
@@ -58,7 +58,7 @@ def main():
         explosion_count = 0
         
         for key, val in state_dict.items():
-            # 只检查权重(weight)和偏置(bias)，跳过统计量(running_mean/var)
+            
             if 'num_batches_tracked' in key: continue
             
             status = check_tensor_health(key, val)
